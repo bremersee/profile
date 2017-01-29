@@ -1,0 +1,150 @@
+server:
+  context-path: /profile
+  port: 8080
+#  use-forward-headers: false
+#  tomcat:
+#    remote-ip-header: x-forwarded-for
+#    protocol-header: x-forwarded-proto
+#    port-header: x-forwarded-port
+#    accesslog:
+#      enabled: false
+#      directory: /opt/profile/log
+
+management:
+  context-path: /admin
+#  health:
+#    diskspace:
+#      path: ./
+#  security:
+#    enabled: true
+#    roles: ADMIN
+
+security:
+  ignored:
+    - /
+    - /favicon.ico
+    - /index.html
+    - /app/**
+    - /assets/**
+    - /bower_components/**
+    - /swagger-ui**
+    - /swagger-ui/**
+    - /swagger-editor**
+    - /webjars/**
+    - /configuration/**
+    - /swagger-resources/**
+    - /v2/**
+    - /api/user-registration
+    - /api/user-registration/validation/**
+  oauth2:
+    client:
+      client-id: swaggerui
+      user-authorization-uri: http://localhost:9000/oauth/authorize
+      access-token-uri: http://localhost:9000/oauth/token
+
+spring:
+  mail:
+    host: localhost
+    port: 25
+#    host: mail.bremersee.org
+#    port: 25
+#    username: cbr
+#    password: ohn3Uf3r
+#    properties:
+#      mail.smtp.auth: true
+#      mail.smtp.starttls: true
+#  data:
+#    mongodb:
+#      database: test
+#      host: localhost
+
+bremersee:
+  acl:
+    sid-identity-query: call identity()
+    class-identity-query: call identity()
+  unboundid:
+    ldap:
+      server:
+        embedded: true
+        root-dn: dc=example,dc=org
+        manager-dn: cn=admin,dc=example,dc=org
+        manager-password: changeit
+        ldap-listener-name: LDAP
+        ldap-port: 1389
+        schema-locations: >-
+          classpath:/ldap-server/server.schema,
+          classpath:/ldap-server/rfc2307bis.schema,
+          classpath:/ldap-server/samba3.schema,
+          classpath:/ldap-server/pureftpd.schema,
+          classpath:/ldap-server/gosystem.schema,
+          classpath:/ldap-server/gofon.schema,
+          classpath:/ldap-server/gofax.schema,
+          classpath:/ldap-server/goto.schema,
+          classpath:/ldap-server/gosa-samba3.schema
+#          classpath:/ldap-server/goto-mime.schema
+        ldif-locations: classpath:/ldap-server/base.ldif
+  ldaptive:
+    ldap-url: ldap://localhost:1389
+    connect-timeout: -1
+    response-timeout: -1
+    use-ssl: false
+    use-start-tls: false
+    bind-dn: cn=admin,dc=example,dc=org
+    bind-credential: changeit
+    pooled: true
+    min-pool-size: 3
+    max-pool-size: 10
+    validate-on-check-in: false
+    validate-on-check-out: false
+    validate-periodically: true
+    validate-period: 300
+    idle-time: 600
+    block-wait-time: 10000
+    search-validator:
+      search-request:
+        base-dn: dc=example,dc=org
+        search-filter:
+          filter: (cn=admin)
+        size-limit: 1
+        search-scope: ONELEVEL
+        return-attributes:
+          - cn
+profile:
+  business:
+    samba-domain:
+      create-default-samba-domain: true
+  domain:
+    ldap:
+      samba-domain:
+        rdn: sambaDomainName
+        search-request:
+          base-dn: dc=example,dc=org
+      role:
+        rdn: cn
+        search-request:
+          base-dn: ou=roles,dc=example,dc=org
+          search-filter: (objectClass=organizationalRole)
+        member-base-dn: ou=people,dc=example,dc=org
+        member-rdn: uid
+      user-group:
+        rdn: cn
+        search-request:
+          base-dn: ou=groups,dc=example,dc=org
+        member-base-dn: ou=people,dc=example,dc=org
+        member-rdn: uid
+        default-member: system
+      user-profile:
+        rdn: uid
+        search-request:
+          base-dn: ou=people,dc=example,dc=org
+      oauth2-client:
+        rdn: uid
+        search-request:
+          base-dn: ou=people,dc=example,dc=org
+
+#bremersee:
+#  swagger-ui:
+#    base-package: org.bremersee.profile.controller.rest
+#    title: Profile Application Rest API
+#    description: An API to manage profile.
+#    version: 1.0.0-SNAPSHOT

@@ -1,0 +1,8 @@
+spring:
+  application:
+    name: profile
+#  cloud:
+#    config:
+#      uri: https://bremersee.org/config
+#      username: cloudcomponent
+#      password: Wenn1chEin3nPasswortgeneratorHaetteStaendeHi3rEinGanzKompliziertesPasswort
