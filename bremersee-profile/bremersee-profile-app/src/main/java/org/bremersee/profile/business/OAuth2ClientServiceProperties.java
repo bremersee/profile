@@ -48,14 +48,16 @@ public class OAuth2ClientServiceProperties {
         systemClient.getAuthorizedGrantTypes().add("password");
         systemClient.getAuthorizedGrantTypes().add("implicit");
         systemClient.getScope().add("openid");
+        systemClient.getScope().add("profile");
         systemClient.getAutoApproveScopes().add(Boolean.TRUE.toString());
         systemClient.getRoles().add(RoleDto.SYSTEM_ROLE_NAME);
+        systemClient.getRoles().add(RoleDto.ACL_ADMIN_ROLE_NAME);
 
         swaggerUiClient.setClientId("swaggerui");
-        swaggerUiClient.setClientSecret(PasswordUtils.createRandomClearPassword(20, true, false));
+        swaggerUiClient.setClientSecret(PasswordUtils.createRandomClearPassword(20, true, true));
         swaggerUiClient.getAuthorizedGrantTypes().add("implicit");
         swaggerUiClient.getScope().add("openid");
-        swaggerUiClient.getScope().add("swaggerui");
+        swaggerUiClient.getScope().add("profile");
         swaggerUiClient.getAutoApproveScopes().add(Boolean.TRUE.toString());
     }
 

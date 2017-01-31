@@ -39,8 +39,11 @@ security:
   oauth2:
     client:
       client-id: swaggerui
-      user-authorization-uri: http://localhost:9000/oauth/authorize
-      access-token-uri: http://localhost:9000/oauth/token
+      user-authorization-uri: http://localhost:8080/profile/oauth/authorize
+      access-token-uri: http://localhost:8080/profile/oauth/token
+    resource:
+      token-info-uri: ttp://localhost:8080/profile/oauth/check_token
+      prefer-token-info: true
 
 spring:
   mail:
@@ -59,6 +62,11 @@ spring:
 #      host: localhost
 
 bremersee:
+  swagger-ui:
+    base-package: org.bremersee.profile.controller.rest
+    title: Profile Application Rest API
+    description: An API to manage user profiles.
+    version: 1.0.0-SNAPSHOT
   acl:
     sid-identity-query: call identity()
     class-identity-query: call identity()

@@ -17,29 +17,23 @@
 package org.bremersee.profile.controller.rest;
 
 import io.swagger.annotations.*;
-import org.bremersee.common.spring.autoconfigure.RestConstants;
+import org.bremersee.profile.SwaggerConfig;
 import org.bremersee.profile.business.PosixSettingsService;
 import org.bremersee.profile.model.PosixSettingsDto;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+
+import java.net.URI;
 
 /**
  * @author Christian Bremer
  */
-@Api(authorizations = {
-        @Authorization(
-                value = RestConstants.SECURITY_SCHEMA_OAUTH2,
-                scopes = {
-                        @AuthorizationScope(
-                                scope = RestConstants.AUTHORIZATION_SCOPE,
-                                description = RestConstants.AUTHORIZATION_SCOPE_DESCR)
-                }
-        )
-})
 @RestController
-@RequestMapping(path = RestConstants.REST_CONTEXT_PATH + "/user-profile")
+@RequestMapping(path = "/api/user-profile/{userName}/posix-settings")
 public class PosixSettingsRestController extends AbstractRestControllerImpl {
 
     private final PosixSettingsService posixSettingsService;
@@ -57,47 +51,51 @@ public class PosixSettingsRestController extends AbstractRestControllerImpl {
     @ApiOperation(value = "Apply posix settings to the user profile.")
     @CrossOrigin
     @RequestMapping(
-            params = "/{userName}/posix-settings",
-            method = RequestMethod.PUT,
+            method = RequestMethod.POST,
             consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
+    @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntity<Void> applyPosixSettingsToProfile(
             @PathVariable("userName") @ApiParam(value = "The user name", required = true) String userName,
             @RequestBody @ApiParam(value = "The settings", required = true) PosixSettingsDto posixSettings) {
+
         posixSettingsService.applyPosixSettingsToProfile(userName, posixSettings);
-        return ResponseEntity.ok().build();
+        final URI location = ServletUriComponentsBuilder
+                .fromCurrentRequest().build().toUri();
+        return ResponseEntity.created(location).build();
     }
 
     @ApiOperation(value = "Update posix settings of the user profile.")
     @CrossOrigin
     @RequestMapping(
-            params = "/{userName}/posix-settings",
-            method = RequestMethod.POST,
+            method = RequestMethod.PATCH,
             consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> updatePosixSettingsToProfile(
             @PathVariable("userName") @ApiParam(value = "The user name", required = true) String userName,
             @RequestBody @ApiParam(value = "The settings", required = true) PosixSettingsDto posixSettings) {
+
         posixSettingsService.updatePosixSettingsToProfile(userName, posixSettings);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
 
     @ApiOperation(value = "Get posix settings of the user profile.")
     @CrossOrigin
     @RequestMapping(
-            params = "/{userName}/posix-settings",
             method = RequestMethod.GET,
             produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
     public PosixSettingsDto findPosixSettingsByUid(
             @PathVariable("userName") @ApiParam(value = "The user name", required = true) String userName) {
+
         return posixSettingsService.findPosixSettingsByUid(userName);
     }
 
     @ApiOperation(value = "Get posix settings of the user profile.")
     @CrossOrigin
     @RequestMapping(
-            params = "/{userName}/posix-settings",
             method = RequestMethod.DELETE)
     public ResponseEntity<Void> removePosixSettingsFromProfile(
             @PathVariable("userName") @ApiParam(value = "The user name", required = true) String userName) {
+        
         posixSettingsService.removePosixSettingsFromProfile(userName);
         return ResponseEntity.ok().build();
     }

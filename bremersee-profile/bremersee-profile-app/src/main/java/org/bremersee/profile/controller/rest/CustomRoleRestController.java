@@ -17,32 +17,26 @@
 package org.bremersee.profile.controller.rest;
 
 import io.swagger.annotations.*;
-import org.bremersee.common.spring.autoconfigure.RestConstants;
 import org.bremersee.pagebuilder.PageBuilderUtils;
 import org.bremersee.pagebuilder.model.Page;
 import org.bremersee.pagebuilder.model.PageDto;
+import org.bremersee.profile.SwaggerConfig;
 import org.bremersee.profile.business.RoleService;
 import org.bremersee.profile.model.RoleDto;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+
+import java.net.URI;
 
 /**
  * @author Christian Bremer
  */
-@Api(authorizations = {
-        @Authorization(
-                value = RestConstants.SECURITY_SCHEMA_OAUTH2,
-                scopes = {
-                        @AuthorizationScope(
-                                scope = RestConstants.AUTHORIZATION_SCOPE,
-                                description = RestConstants.AUTHORIZATION_SCOPE_DESCR)
-                }
-        )
-})
 @RestController
-@RequestMapping(path = RestConstants.REST_CONTEXT_PATH + "/custom-role")
+@RequestMapping(path = "/api/custom-role")
 public class CustomRoleRestController extends AbstractRestControllerImpl {
 
     private final RoleService roleService;
@@ -57,21 +51,32 @@ public class CustomRoleRestController extends AbstractRestControllerImpl {
         // nothing to init
     }
 
-    @ApiOperation(value = "Creates a role of a user which is owned by the user and can be administrated by the user.")
+    @ApiOperation(value = "Create a role of a user which is owned by the user and can be administrated by the user.")
     @CrossOrigin
     @RequestMapping(
-            method = RequestMethod.PUT,
+            method = RequestMethod.POST,
             produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
-    public RoleDto createCustomRole(
+    @ResponseStatus(HttpStatus.CREATED)
+    public ResponseEntity<RoleDto> createCustomRole(
             @RequestParam(name = "description", required = false) @ApiParam("The role description.") String description,
             @RequestParam(name = "owner", required = false)
             @ApiParam("The role owner (default is the current user " +
                     "- this parameter can only be set by administrators).") String owner) {
 
-        return roleService.createCustomRole(description, owner);
+        RoleDto dto = roleService.createCustomRole(description, owner);
+
+        String uri = ServletUriComponentsBuilder.fromCurrentRequest().path("/{roleName}")
+                .buildAndExpand(dto.getName()).toString();
+        uri = uri.replaceFirst("/api/custom-role", "/api/role");
+        int index = uri.indexOf('?');
+        if (index > 0) {
+            uri = uri.substring(0, index);
+        }
+
+        return ResponseEntity.created(URI.create(uri)).body(dto);
     }
 
-    @ApiOperation(value = "Finds custom roles.")
+    @ApiOperation(value = "Find custom roles.")
     @CrossOrigin
     @RequestMapping(
             method = RequestMethod.GET,

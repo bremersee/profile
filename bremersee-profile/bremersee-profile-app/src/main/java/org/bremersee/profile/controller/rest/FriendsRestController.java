@@ -18,30 +18,23 @@ package org.bremersee.profile.controller.rest;
 
 import io.swagger.annotations.*;
 import org.bremersee.common.model.StringListDto;
-import org.bremersee.common.spring.autoconfigure.RestConstants;
+import org.bremersee.profile.SwaggerConfig;
 import org.bremersee.profile.business.FriendsService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import java.net.URI;
 import java.util.List;
 
 /**
  * @author Christian Bremer
  */
-@Api(authorizations = {
-        @Authorization(
-                value = RestConstants.SECURITY_SCHEMA_OAUTH2,
-                scopes = {
-                        @AuthorizationScope(
-                                scope = RestConstants.AUTHORIZATION_SCOPE,
-                                description = RestConstants.AUTHORIZATION_SCOPE_DESCR)
-                }
-        )
-})
 @RestController
-@RequestMapping(path = RestConstants.REST_CONTEXT_PATH + "/friends")
+@RequestMapping(path = "/api/friends")
 public class FriendsRestController extends AbstractRestControllerImpl {
 
     private final FriendsService friendsService;
@@ -56,7 +49,7 @@ public class FriendsRestController extends AbstractRestControllerImpl {
         // nothing to init
     }
 
-    @ApiOperation(value = "Gets the friends of the user.")
+    @ApiOperation(value = "Get the friends of the user.")
     @CrossOrigin
     @RequestMapping(
             method = RequestMethod.GET,
@@ -67,32 +60,36 @@ public class FriendsRestController extends AbstractRestControllerImpl {
         return new StringListDto(friendsService.getFriends(user));
     }
 
-    @ApiOperation(value = "Replaces the friends of the user.")
+    @ApiOperation(value = "Replace the friends of the user.")
     @CrossOrigin
     @RequestMapping(
             method = RequestMethod.POST,
             consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
+    @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntity<Void> updateFriends(
             @RequestParam(name = "user", required = false) @ApiParam("The user name (default is the current user " +
                     "- this parameter can only be set by administrators).") String user,
             @RequestBody @ApiParam(value = "The new friends", required = true) StringListDto friends) {
 
         friendsService.updateFriends(user, friends.getEntries());
-        return ResponseEntity.ok().build();
+        final URI location = ServletUriComponentsBuilder
+                .fromCurrentRequest().build().toUri();
+        return ResponseEntity.created(location).build();
     }
 
     @ApiOperation(value = "Add friends to the user.")
     @CrossOrigin
     @RequestMapping(
-            method = RequestMethod.PUT,
+            method = RequestMethod.PATCH,
             consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> addFriends(
             @RequestParam(name = "user", required = false) @ApiParam("The user name (default is the current user " +
                     "- this parameter can only be set by administrators).") String user,
             @RequestBody @ApiParam(value = "The friends to add", required = true) StringListDto friends) {
 
         friendsService.addFriends(user, friends.getEntries());
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
 
     @ApiOperation(value = "Remove friends from the user.")
@@ -113,7 +110,7 @@ public class FriendsRestController extends AbstractRestControllerImpl {
     @ApiOperation(value = "Get users who have the specified (current) user as friend.")
     @CrossOrigin
     @RequestMapping(
-            params = "/vice-versa",
+            path = "/vice-versa",
             method = RequestMethod.GET,
             produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
     public StringListDto getUsersWhoHaveMeAsFriend(

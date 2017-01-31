@@ -26,7 +26,9 @@ import org.bremersee.pagebuilder.PageBuilderUtils;
 import org.bremersee.pagebuilder.model.Page;
 import org.bremersee.pagebuilder.model.PageRequest;
 import org.bremersee.pagebuilder.model.PageRequestDto;
+import org.bremersee.profile.domain.ldap.dao.OAuth2ClientLdapDao;
 import org.bremersee.profile.domain.ldap.dao.RoleLdapDao;
+import org.bremersee.profile.domain.ldap.dao.UserProfileLdapDao;
 import org.bremersee.profile.domain.ldap.entity.RoleLdap;
 import org.bremersee.profile.domain.ldap.mapper.RoleLdapMapper;
 import org.bremersee.profile.model.RoleDto;
@@ -58,7 +60,11 @@ public class RoleServiceImpl extends AbstractServiceImpl implements RoleService 
 
     private final RoleLdapMapper roleLdapMapper;
 
-    private final RoleProperties roleProperties;
+    private UserProfileLdapDao userProfileLdapDao;
+
+    private OAuth2ClientLdapDao oAuth2ClientLdapDao;
+
+    private RoleProperties roleProperties = new RoleProperties();
 
     @SuppressWarnings("SpringJavaAutowiringInspection")
     @Autowired
@@ -66,17 +72,29 @@ public class RoleServiceImpl extends AbstractServiceImpl implements RoleService 
             RoleNameService roleNameService,
             RoleLdapDao roleLdapDao,
             RoleLdapMapper roleLdapMapper,
-            RoleProperties roleProperties) {
+            UserProfileLdapDao userProfileLdapDao,
+            OAuth2ClientLdapDao oAuth2ClientLdapDao) {
 
         this.roleNameService = roleNameService;
         this.roleLdapDao = roleLdapDao;
         this.roleLdapMapper = roleLdapMapper;
+        this.userProfileLdapDao = userProfileLdapDao;
+        this.oAuth2ClientLdapDao = oAuth2ClientLdapDao;
+    }
+
+    @Autowired(required = false)
+    public void setRoleProperties(RoleProperties roleProperties) {
         this.roleProperties = roleProperties;
     }
 
     @Override
     protected void doInit() {
         runAsSystemWithoutResult(new Initializer());
+    }
+
+    private boolean userExists(final String userName) {
+        return userProfileLdapDao.existsByUserName(userName)
+                || oAuth2ClientLdapDao.exists(userName);
     }
 
     private String generateCustomRoleName(final String userName) {
@@ -97,12 +115,18 @@ public class RoleServiceImpl extends AbstractServiceImpl implements RoleService 
             userName = getCurrentUserName();
         }
         log.info("{}: Creating custom role for user [{}] ...", getCurrentUserName(), userName);
+        if (!userName.equals(getCurrentUserName())) {
+            BadRequestException.validateTrue(userExists(userName),
+                    String.format("User [%s] doesn't exist.", userName));
+        }
         RoleDto customRole = runAsSystem(() -> {
+            final String descr = StringUtils.isBlank(description) ?
+                    String.format("Custom role of user [%s].", userName) : description;
             String roleName = generateCustomRoleName(userName);
             while (roleLdapDao.existsByName(roleName)) {
                 roleName = generateCustomRoleName(userName);
             }
-            RoleDto role = create(new RoleDto(roleName, description));
+            RoleDto role = create(new RoleDto(roleName, descr));
             MutableAcl acl = (MutableAcl) getAclService().readAclById(getObjectIdentityRetrievalStrategy()
                     .getObjectIdentity(role));
             PrincipalSid ownerSid = new PrincipalSid(userName);

@@ -19,7 +19,7 @@ package org.bremersee.profile.controller.rest;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.Authorization;
 import io.swagger.annotations.AuthorizationScope;
-import org.bremersee.common.spring.autoconfigure.RestConstants;
+import org.bremersee.profile.SwaggerConfig;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -29,18 +29,8 @@ import java.security.Principal;
 /**
  * @author Christian Bremer
  */
-@Api(authorizations = {
-        @Authorization(
-                value = RestConstants.SECURITY_SCHEMA_OAUTH2,
-                scopes = {
-                        @AuthorizationScope(
-                                scope = RestConstants.AUTHORIZATION_SCOPE,
-                                description = RestConstants.AUTHORIZATION_SCOPE_DESCR)
-                }
-        )
-})
 @RestController
-@RequestMapping(path = RestConstants.REST_CONTEXT_PATH + "/me")
+@RequestMapping(path = "/api/me")
 public class MeRestController extends AbstractRestControllerImpl {
 
     @Override
@@ -48,7 +38,7 @@ public class MeRestController extends AbstractRestControllerImpl {
         // nothing to init
     }
 
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize(HAS_OAUTH2_SCOPE_OPENID)
     @RequestMapping
     public Principal me(Principal me) {
         return me;

@@ -503,9 +503,9 @@ public class UserProfileServiceImpl extends AbstractUserProfileServiceImpl imple
                 request.setFirstName(getAdminProfile().getFirstName());
                 request.setLastName(getAdminProfile().getLastName());
                 create(request);
-
-                roleService.addMembers(RoleDto.ADMIN_ROLE_NAME, Collections.singleton(getAdminName()));
             }
+            roleService.addMembers(RoleDto.ADMIN_ROLE_NAME, Collections.singleton(getAdminName()));
+            roleService.addMembers(RoleDto.ACL_ADMIN_ROLE_NAME, Collections.singleton(getAdminName()));
         }
     }
 

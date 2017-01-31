@@ -30,7 +30,11 @@ import java.nio.charset.StandardCharsets;
  */
 public abstract class AbstractRestControllerImpl extends AbstractComponentImpl {
 
-    ComparatorItemDeserializer comparatorItemDeserializer = new ComparatorItemTransformerImpl();
+    static final String HAS_OAUTH2_SCOPE_OPENID = "#oauth2.hasScope('openid')";
+
+    static final String HAS_OAUTH2_SCOPE_PROFILE = "#oauth2.hasScope('profile')";
+
+    private ComparatorItemDeserializer comparatorItemDeserializer = new ComparatorItemTransformerImpl();
 
     @Autowired(required = false)
     public void setComparatorItemDeserializer(final ComparatorItemDeserializer comparatorItemDeserializer) {

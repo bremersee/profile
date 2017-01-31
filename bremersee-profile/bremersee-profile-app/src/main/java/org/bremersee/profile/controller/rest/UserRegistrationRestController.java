@@ -16,17 +16,17 @@
 
 package org.bremersee.profile.controller.rest;
 
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
-import org.bremersee.common.spring.autoconfigure.RestConstants;
+import io.swagger.annotations.*;
 import org.bremersee.fac.model.AccessResultDto;
 import org.bremersee.pagebuilder.PageBuilderUtils;
 import org.bremersee.pagebuilder.model.Page;
 import org.bremersee.pagebuilder.model.PageDto;
+import org.bremersee.profile.SwaggerConfig;
 import org.bremersee.profile.business.UserRegistrationService;
 import org.bremersee.profile.model.UserRegistrationDto;
 import org.bremersee.profile.model.UserRegistrationRequestDto;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -37,7 +37,7 @@ import javax.servlet.http.HttpServletRequest;
  * @author Christian Bremer
  */
 @RestController
-@RequestMapping(path = RestConstants.REST_CONTEXT_PATH + "/user-registration")
+@RequestMapping(path = "/api/user-registration")
 public class UserRegistrationRestController extends AbstractRestControllerImpl {
 
     private UserRegistrationService userRegistrationService;
@@ -52,28 +52,31 @@ public class UserRegistrationRestController extends AbstractRestControllerImpl {
         // nothing to init
     }
 
-    @ApiOperation(value = "Processes an user registration requests.")
+    @ApiOperation(value = "Process an user registration request.")
     @CrossOrigin
-    @RequestMapping(method = RequestMethod.PUT,
+    @RequestMapping(method = RequestMethod.POST,
             consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
+    @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntity<Void> processRegistrationRequest(
             @RequestBody @ApiParam(value = "The request", required = true) UserRegistrationRequestDto request) {
 
         userRegistrationService.processRegistrationRequest(request);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
-    @ApiOperation(value = "Processes an user registration validation.")
+    @ApiOperation(value = "Process an user registration validation.")
     @CrossOrigin
     @RequestMapping(path = "/validation/{registrationHash}",
             method = RequestMethod.GET,
             produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
-    public AccessResultDto processRegistrationValidation(
+    @ResponseStatus(HttpStatus.OK)
+    public ResponseEntity<AccessResultDto> processRegistrationValidation(
             @PathVariable("registrationHash") @ApiParam(value = "The registration hash", required = true) String registrationHash,
             HttpServletRequest request) {
 
         String remoteHost = request.getRemoteHost();
-        return userRegistrationService.processRegistrationValidation(registrationHash, remoteHost);
+        AccessResultDto dto = userRegistrationService.processRegistrationValidation(registrationHash, remoteHost);
+        return ResponseEntity.ok(dto);
     }
 
 

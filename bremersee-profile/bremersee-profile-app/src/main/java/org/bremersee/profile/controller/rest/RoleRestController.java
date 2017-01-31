@@ -21,35 +21,42 @@ import org.apache.commons.lang3.StringUtils;
 import org.bremersee.common.business.RoleNameService;
 import org.bremersee.common.model.BooleanDto;
 import org.bremersee.common.model.StringListDto;
-import org.bremersee.common.spring.autoconfigure.RestConstants;
 import org.bremersee.pagebuilder.PageBuilderUtils;
 import org.bremersee.pagebuilder.model.Page;
 import org.bremersee.pagebuilder.model.PageDto;
+import org.bremersee.profile.SwaggerConfig;
 import org.bremersee.profile.business.RoleService;
 import org.bremersee.profile.model.RoleDto;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import java.net.URI;
 import java.util.List;
 import java.util.Set;
 
 /**
  * @author Christian Bremer
  */
-@Api(authorizations = {
-        @Authorization(
-                value = RestConstants.SECURITY_SCHEMA_OAUTH2,
-                scopes = {
-                        @AuthorizationScope(
-                                scope = RestConstants.AUTHORIZATION_SCOPE,
-                                description = RestConstants.AUTHORIZATION_SCOPE_DESCR)
-                }
-        )
-})
+//@Api(authorizations = {
+//        @Authorization(
+//                value = SwaggerConfig.SECURITY_SCHEMA_OAUTH2,
+//                scopes = {
+//                        @AuthorizationScope(
+//                                scope = SwaggerConfig.OPENID_SCOPE,
+//                                description = SwaggerConfig.OPENID_SCOPE_DESCR),
+//                        @AuthorizationScope(
+//                                scope = SwaggerConfig.PROFILE_SCOPE,
+//                                description = SwaggerConfig.PROFILE_SCOPE_DESCR)
+//                }
+//        )
+//})
 @RestController
-@RequestMapping(path = RestConstants.REST_CONTEXT_PATH + "/role")
+@RequestMapping(path = "/api/role")
 public class RoleRestController extends AbstractRestControllerImpl {
 
     private final RoleService roleService;
@@ -64,7 +71,8 @@ public class RoleRestController extends AbstractRestControllerImpl {
         // nothing to init
     }
 
-    @ApiOperation(value = "Finds all roles.")
+    @PreAuthorize(HAS_OAUTH2_SCOPE_PROFILE)
+    @ApiOperation(value = "Find all roles.")
     @CrossOrigin
     @RequestMapping(
             method = RequestMethod.GET,
@@ -80,33 +88,40 @@ public class RoleRestController extends AbstractRestControllerImpl {
         return PageBuilderUtils.createPageDto(page, null);
     }
 
-    @ApiOperation(value = "Creates a new role.")
+    @ApiOperation(value = "Create a new role.")
     @CrossOrigin
     @RequestMapping(
-            method = RequestMethod.PUT,
+            method = RequestMethod.POST,
             consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE},
             produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
-    public RoleDto create(
+    @ResponseStatus(HttpStatus.CREATED)
+    public ResponseEntity<RoleDto> create(
             @RequestBody @ApiParam(value = "The role.") RoleDto role) {
 
-        return roleService.create(role);
+        RoleDto dto = roleService.create(role);
+        final URI location = ServletUriComponentsBuilder
+                .fromCurrentRequest().path("/{roleName}")
+                .buildAndExpand(dto.getName()).toUri();
+        return ResponseEntity.created(location).body(dto);
     }
 
-    @ApiOperation(value = "Updates a role.")
+    @ApiOperation(value = "Update a role.")
     @CrossOrigin
     @RequestMapping(
-            params = "/{roleName}",
-            method = RequestMethod.PUT,
+            path = "/{roleName}",
+            method = RequestMethod.PATCH,
             consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE},
             produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
-    public RoleDto update(
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public ResponseEntity<Void> update(
             @PathVariable("roleName") @ApiParam(value = "The role name", required = true) String roleName,
             @RequestBody @ApiParam(value = "The role.") RoleDto role) {
 
-        return roleService.update(roleName, role);
+        roleService.update(roleName, role);
+        return ResponseEntity.noContent().build();
     }
 
-    @ApiOperation(value = "Finds a role by it's name.")
+    @ApiOperation(value = "Find a role by it's name.")
     @CrossOrigin
     @RequestMapping(
             path = "/{roleName}",
@@ -118,7 +133,7 @@ public class RoleRestController extends AbstractRestControllerImpl {
         return roleService.findByName(roleName);
     }
 
-    @ApiOperation(value = "Tests whether a role exists or not.")
+    @ApiOperation(value = "Test whether a role exists or not.")
     @CrossOrigin
     @RequestMapping(
             path = "/{roleName}/exists",
@@ -130,9 +145,11 @@ public class RoleRestController extends AbstractRestControllerImpl {
         return new BooleanDto(roleService.existsByName(roleName));
     }
 
-    @ApiOperation(value = "Deletes a role.")
+    @ApiOperation(value = "Delete a role.")
     @CrossOrigin
-    @RequestMapping(path = "/{roleName}", method = RequestMethod.DELETE)
+    @RequestMapping(
+            path = "/{roleName}",
+            method = RequestMethod.DELETE)
     public ResponseEntity<Void> deleteByName(
             @PathVariable("roleName") @ApiParam(value = "The role name", required = true) String roleName) {
 
@@ -140,7 +157,7 @@ public class RoleRestController extends AbstractRestControllerImpl {
         return ResponseEntity.ok().build();
     }
 
-    @ApiOperation(value = "Tests whether a role exists or not.")
+    @ApiOperation(value = "Find roles of an user.")
     @CrossOrigin
     @RequestMapping(
             path = "/f/role-names-by-member",
@@ -163,7 +180,7 @@ public class RoleRestController extends AbstractRestControllerImpl {
         return new StringListDto(roleNames);
     }
 
-    @ApiOperation(value = "Tests whether the user has the role or not.")
+    @ApiOperation(value = "Test whether the user has the role or not.")
     @CrossOrigin
     @RequestMapping(
             path = "/f/has-role",
@@ -178,7 +195,7 @@ public class RoleRestController extends AbstractRestControllerImpl {
         return new BooleanDto(roleService.hasRole(userName, roleName));
     }
 
-    @ApiOperation(value = "Gets the members of the role.")
+    @ApiOperation(value = "Get the members of the role.")
     @CrossOrigin
     @RequestMapping(
             path = "/{roleName}/members",
@@ -190,18 +207,19 @@ public class RoleRestController extends AbstractRestControllerImpl {
         return new StringListDto(roleService.getMembers(roleName));
     }
 
-    @ApiOperation(value = "Adds members to the role.")
+    @ApiOperation(value = "Add members to the role.")
     @CrossOrigin
     @RequestMapping(
             path = "/{roleName}/members",
-            method = RequestMethod.PUT,
+            method = RequestMethod.PATCH,
             consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> addMembers(
             @PathVariable("roleName") @ApiParam(value = "The role name", required = true) String roleName,
             @RequestBody @ApiParam(value = "The member(s)", required = true) StringListDto members) {
 
         roleService.addMembers(roleName, members.getEntries());
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
 
     @ApiOperation(value = "Removes members from the role.")
@@ -219,18 +237,21 @@ public class RoleRestController extends AbstractRestControllerImpl {
         return ResponseEntity.ok().build();
     }
 
-    @ApiOperation(value = "Replaces the members of the role.")
+    @ApiOperation(value = "Replace the members of the role.")
     @CrossOrigin
     @RequestMapping(
             path = "/{roleName}/members",
             method = RequestMethod.POST,
             consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
+    @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntity<Void> updateMembers(
             @PathVariable("roleName") @ApiParam(value = "The role name", required = true) String roleName,
             @RequestBody @ApiParam(value = "The member(s)", required = true) StringListDto members) {
 
         roleService.updateMembers(roleName, members.getEntries());
-        return ResponseEntity.ok().build();
+        final URI location = ServletUriComponentsBuilder
+                .fromCurrentRequest().build().toUri();
+        return ResponseEntity.created(location).build();
     }
 
 }

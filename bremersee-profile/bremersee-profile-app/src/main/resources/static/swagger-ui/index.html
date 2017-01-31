@@ -2,6 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
+  <meta http-equiv="x-ua-compatible" content="IE=edge">
   <title>Swagger UI</title>
   <link rel="icon" type="image/png" href="images/favicon-32x32.png" sizes="32x32" />
   <link rel="icon" type="image/png" href="images/favicon-16x16.png" sizes="16x16" />
@@ -37,6 +38,7 @@
       if (url && url.length > 1) {
         url = decodeURIComponent(url[1]);
       } else {
+          // cbr modification
           //url = "http://petstore.swagger.io/v2/swagger.json";
           url = "/profile/v2/api-docs";
       }
@@ -119,7 +121,6 @@
           }
       });
       // cbr (end)
-
       function log() {
         if ('console' in window) {
           console.log.apply(console, arguments);

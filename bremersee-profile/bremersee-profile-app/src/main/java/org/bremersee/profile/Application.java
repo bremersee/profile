@@ -29,10 +29,12 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.authentication.configurers.GlobalAuthenticationConfigurerAdapter;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
+import org.springframework.security.config.annotation.method.configuration.GlobalMethodSecurityConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -46,6 +48,7 @@ import org.springframework.security.oauth2.config.annotation.web.configurers.Aut
 import org.springframework.security.oauth2.config.annotation.web.configurers.AuthorizationServerSecurityConfigurer;
 import org.springframework.security.oauth2.config.annotation.web.configurers.ResourceServerSecurityConfigurer;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
+import org.springframework.security.oauth2.provider.expression.OAuth2MethodSecurityExpressionHandler;
 import org.springframework.security.oauth2.provider.token.store.JwtAccessTokenConverter;
 import org.springframework.security.oauth2.provider.token.store.JwtTokenStore;
 import org.springframework.security.oauth2.provider.token.store.KeyStoreKeyFactory;
@@ -61,7 +64,6 @@ import java.security.KeyPair;
  */
 @SpringBootApplication
 @EnableMongoRepositories(basePackages = "org.bremersee.profile.domain.mongodb.repository")
-@EnableGlobalMethodSecurity(jsr250Enabled = true, prePostEnabled = true, securedEnabled = true)
 public class Application extends WebSecurityConfigurerAdapter {
 
     private AuthenticationManager authenticationManager;
@@ -243,12 +245,34 @@ public class Application extends WebSecurityConfigurerAdapter {
 
             // test config
             http
-                    .antMatcher("/api/**").authorizeRequests()
+                    .antMatcher("/api/**")
+                    .authorizeRequests()
                     .antMatchers(HttpMethod.OPTIONS).permitAll()
                     .antMatchers(HttpMethod.PUT, "/api/user-registration").permitAll()
                     .antMatchers(HttpMethod.GET, "/api/user-registration/validation/**").permitAll()
+                    //.antMatchers("/api/**").fullyAuthenticated();
                     .anyRequest().authenticated();
         }
+    }
+
+    @Configuration
+    @EnableGlobalMethodSecurity(jsr250Enabled = true, prePostEnabled = true, securedEnabled = true)
+    public static class MethodSecurityConfig extends GlobalMethodSecurityConfiguration {
+
+        private final OAuth2MethodSecurityExpressionHandler handler = new OAuth2MethodSecurityExpressionHandler();
+
+        @Override
+        protected MethodSecurityExpressionHandler createExpressionHandler() {
+
+            // to make something like: @PreAuthorize("#oauth2.hasScope('requiredScope')")
+            return methodSecurityExpressionHandler();
+        }
+
+        @Bean
+        public OAuth2MethodSecurityExpressionHandler methodSecurityExpressionHandler() {
+            return handler;
+        }
+
     }
 
 }

@@ -17,29 +17,23 @@
 package org.bremersee.profile.controller.rest;
 
 import io.swagger.annotations.*;
-import org.bremersee.common.spring.autoconfigure.RestConstants;
+import org.bremersee.profile.SwaggerConfig;
 import org.bremersee.profile.business.SambaSettingsService;
 import org.bremersee.profile.model.SambaSettingsDto;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+
+import java.net.URI;
 
 /**
  * @author Christian Bremer
  */
-@Api(authorizations = {
-        @Authorization(
-                value = RestConstants.SECURITY_SCHEMA_OAUTH2,
-                scopes = {
-                        @AuthorizationScope(
-                                scope = RestConstants.AUTHORIZATION_SCOPE,
-                                description = RestConstants.AUTHORIZATION_SCOPE_DESCR)
-                }
-        )
-})
 @RestController
-@RequestMapping(path = RestConstants.REST_CONTEXT_PATH + "/user-profile")
+@RequestMapping(path = "/api/user-profile/{userName}/samba-settings")
 public class SambaSettingsRestController extends AbstractRestControllerImpl {
 
     private final SambaSettingsService sambaSettingsService;
@@ -54,51 +48,55 @@ public class SambaSettingsRestController extends AbstractRestControllerImpl {
         // nothing to init
     }
 
-    @ApiOperation(value = "Apply samba settings to the user profile.")
+    @ApiOperation(value = "Apply samba settings to the user profile.", httpMethod = "PUT")
     @CrossOrigin
     @RequestMapping(
-            params = "/{userName}/samba-settings",
-            method = RequestMethod.PUT,
+            method = RequestMethod.POST,
             consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
+    @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntity<Void> applySambaSettingsToProfile(
             @PathVariable("userName") @ApiParam(value = "The user name", required = true) String userName,
             @RequestBody @ApiParam(value = "The settings", required = true) SambaSettingsDto sambaSettings) {
+
         sambaSettingsService.applySambaSettingsToProfile(userName, sambaSettings);
-        return ResponseEntity.ok().build();
+        final URI location = ServletUriComponentsBuilder
+                .fromCurrentRequest().build().toUri();
+        return ResponseEntity.created(location).build();
     }
 
-    @ApiOperation(value = "Update samba settings of the user profile.")
+    @ApiOperation(value = "Update samba settings of the user profile.", httpMethod = "POST")
     @CrossOrigin
     @RequestMapping(
-            params = "/{userName}/samba-settings",
-            method = RequestMethod.POST,
+            method = RequestMethod.PATCH,
             consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> updateSambaSettingsToProfile(
             @PathVariable("userName") @ApiParam(value = "The user name", required = true) String userName,
             @RequestBody @ApiParam(value = "The settings", required = true) SambaSettingsDto sambaSettings) {
+
         sambaSettingsService.updateSambaSettingsToProfile(userName, sambaSettings);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
 
-    @ApiOperation(value = "Get samba settings of the user profile.")
+    @ApiOperation(value = "Get samba settings of the user profile.", httpMethod = "GET")
     @CrossOrigin
     @RequestMapping(
-            params = "/{userName}/samba-settings",
             method = RequestMethod.GET,
             produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
     public SambaSettingsDto findSambaSettingsByUid(
             @PathVariable("userName") @ApiParam(value = "The user name", required = true) String userName) {
+
         sambaSettingsService.findSambaSettingsByUid(userName);
         return null;
     }
 
-    @ApiOperation(value = "Get samba settings of the user profile.")
+    @ApiOperation(value = "Remove samba settings from the user profile.", httpMethod = "DELETE")
     @CrossOrigin
     @RequestMapping(
-            params = "/{userName}/samba-settings",
             method = RequestMethod.DELETE)
     public ResponseEntity<Void> removeSambaSettingsFromProfile(
             @PathVariable("userName") @ApiParam(value = "The user name", required = true) String userName) {
+        
         sambaSettingsService.removeSambaSettingsFromProfile(userName);
         return ResponseEntity.ok().build();
     }

@@ -57,12 +57,12 @@ public class OAuth2ClientLdapDaoImpl extends AbstractLdapDaoImpl implements OAut
     @Override
     public void save(final String clientId) {
 
-        BadRequestException.validateNotBlank(clientId, "OAuth2 client ID must be present.");
+        BadRequestException.validateNotBlank(clientId, "OAuth2 client ID must be present."); // NOSONAR
         Connection connection = null;
         try {
             connection = getConnection();
 
-            LdapEntry target = findLdapEntryByClientId(clientId);
+            LdapEntry target = findLdapEntryByClientId(connection, clientId);
             if (target == null) {
                 target = new LdapEntry();
                 target.setDn(createDn(clientId));
@@ -113,9 +113,21 @@ public class OAuth2ClientLdapDaoImpl extends AbstractLdapDaoImpl implements OAut
         }
     }
 
+    @Override
+    public boolean exists(final String clientId) {
+
+        BadRequestException.validateNotBlank(clientId, "OAuth2 client ID must be present.");
+        return findLdapEntryByClientId(clientId) != null;
+    }
+
     private LdapEntry findLdapEntryByClientId(final String clientId) {
         final String filter = String.format("(&(objectClass=namedObject)(objectClass=uidObject)(uid=%s))", clientId);
         return findOneByFilter(filter);
+    }
+
+    private LdapEntry findLdapEntryByClientId(final Connection connection, final String clientId) throws LdapException {
+        final String filter = String.format("(&(objectClass=namedObject)(objectClass=uidObject)(uid=%s))", clientId);
+        return findOneByFilter(connection, filter);
     }
 
 }

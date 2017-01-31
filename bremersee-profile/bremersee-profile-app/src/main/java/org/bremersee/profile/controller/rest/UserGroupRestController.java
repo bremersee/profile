@@ -20,34 +20,27 @@ import io.swagger.annotations.*;
 import org.apache.commons.lang3.StringUtils;
 import org.bremersee.common.model.BooleanDto;
 import org.bremersee.common.model.StringListDto;
-import org.bremersee.common.spring.autoconfigure.RestConstants;
 import org.bremersee.pagebuilder.PageBuilderUtils;
 import org.bremersee.pagebuilder.model.Page;
 import org.bremersee.pagebuilder.model.PageDto;
+import org.bremersee.profile.SwaggerConfig;
 import org.bremersee.profile.business.UserGroupService;
 import org.bremersee.profile.model.UserGroupDto;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import java.net.URI;
 import java.util.List;
 
 /**
  * @author Christian Bremer
  */
-@Api(authorizations = {
-        @Authorization(
-                value = RestConstants.SECURITY_SCHEMA_OAUTH2,
-                scopes = {
-                        @AuthorizationScope(
-                                scope = RestConstants.AUTHORIZATION_SCOPE,
-                                description = RestConstants.AUTHORIZATION_SCOPE_DESCR)
-                }
-        )
-})
 @RestController
-@RequestMapping(path = RestConstants.REST_CONTEXT_PATH + "/user-group")
+@RequestMapping(path = "/api/user-group")
 public class UserGroupRestController extends AbstractRestControllerImpl {
 
     private UserGroupService userGroupService;
@@ -62,7 +55,7 @@ public class UserGroupRestController extends AbstractRestControllerImpl {
         // nothing to init
     }
 
-    @ApiOperation(value = "Finds all user groups.")
+    @ApiOperation(value = "Find all user groups.")
     @CrossOrigin
     @RequestMapping(
             method = RequestMethod.GET,
@@ -78,33 +71,40 @@ public class UserGroupRestController extends AbstractRestControllerImpl {
         return PageBuilderUtils.createPageDto(page, null);
     }
 
-    @ApiOperation(value = "Creates a new user group.")
+    @ApiOperation(value = "Create a new user group.")
     @CrossOrigin
     @RequestMapping(
-            method = RequestMethod.PUT,
+            method = RequestMethod.POST,
             consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE},
             produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
-    public UserGroupDto create(
+    @ResponseStatus(HttpStatus.CREATED)
+    public ResponseEntity<UserGroupDto> create(
             @RequestBody @ApiParam(value = "The user group.") UserGroupDto userGroup) {
 
-        return userGroupService.create(userGroup);
+        UserGroupDto dto = userGroupService.create(userGroup);
+        final URI location = ServletUriComponentsBuilder
+                .fromCurrentRequest().path("/{userGroupName}")
+                .buildAndExpand(dto.getName()).toUri();
+        return ResponseEntity.created(location).body(dto);
     }
 
-    @ApiOperation(value = "Updates a user group.")
+    @ApiOperation(value = "Update a user group.")
     @CrossOrigin
     @RequestMapping(
             path = "/{userGroupName}",
-            method = RequestMethod.PUT,
+            method = RequestMethod.PATCH,
             consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE},
             produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
-    public UserGroupDto update(
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public ResponseEntity<Void> update(
             @PathVariable("userGroupName") @ApiParam(value = "The group name", required = true) String userGroupName,
             @RequestBody @ApiParam(value = "The user group.") UserGroupDto userGroup) {
 
-        return userGroupService.update(userGroupName, userGroup);
+        userGroupService.update(userGroupName, userGroup);
+        return ResponseEntity.noContent().build();
     }
 
-    @ApiOperation(value = "Finds a user group by it's identifier (name, GID or Samba SID).")
+    @ApiOperation(value = "Find a user group by it's identifier (name, GID or Samba SID).")
     @CrossOrigin
     @RequestMapping(
             path = "/{identifier}",
@@ -116,7 +116,7 @@ public class UserGroupRestController extends AbstractRestControllerImpl {
         return userGroupService.findByIdentifier(identifier);
     }
 
-    @ApiOperation(value = "Tests whether a user group exists or not.")
+    @ApiOperation(value = "Test whether a user group exists or not.")
     @CrossOrigin
     @RequestMapping(
             path = "/{identifier}/exists",
@@ -128,7 +128,7 @@ public class UserGroupRestController extends AbstractRestControllerImpl {
         return new BooleanDto(userGroupService.existsByIdentifier(identifier));
     }
 
-    @ApiOperation(value = "Deletes a user group.")
+    @ApiOperation(value = "Delete a user group.")
     @CrossOrigin
     @RequestMapping(
             path = "/{userGroupName}",
@@ -140,7 +140,7 @@ public class UserGroupRestController extends AbstractRestControllerImpl {
         return ResponseEntity.ok().build();
     }
 
-    @ApiOperation(value = "Finds all groups which contain the specified user as member.")
+    @ApiOperation(value = "Find all groups which contain the specified user as member.")
     @CrossOrigin
     @RequestMapping(
             path = "/f/group-names-by-member",
@@ -154,7 +154,7 @@ public class UserGroupRestController extends AbstractRestControllerImpl {
         return new StringListDto(userGroupService.findUserGroupNamesByMember(memberName));
     }
 
-    @ApiOperation(value = "Tests whether the specified user is a member of the specified role.")
+    @ApiOperation(value = "Test whether the specified user is a member of the specified role.")
     @CrossOrigin
     @RequestMapping(
             path = "/f/is-group-member",
@@ -169,7 +169,7 @@ public class UserGroupRestController extends AbstractRestControllerImpl {
         return new BooleanDto(userGroupService.isGroupMember(memberName, userGroupName));
     }
 
-    @ApiOperation(value = "Returns the members of the specified user group.")
+    @ApiOperation(value = "Get the members of the specified user group.")
     @CrossOrigin
     @RequestMapping(
             path = "/{userGroupName}/members",
@@ -181,21 +181,22 @@ public class UserGroupRestController extends AbstractRestControllerImpl {
         return new StringListDto(userGroupService.getMembers(userGroupName));
     }
 
-    @ApiOperation(value = "Adds members to the specified user group.")
+    @ApiOperation(value = "Add members to the specified user group.")
     @CrossOrigin
     @RequestMapping(
             path = "/{userGroupName}/members",
-            method = RequestMethod.PUT,
+            method = RequestMethod.PATCH,
             consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> addMembers(
             @PathVariable("userGroupName") @ApiParam(value = "The group name", required = true) String userGroupName,
             @RequestBody @ApiParam(value = "The member(s) to add", required = true) StringListDto members) {
 
         userGroupService.addMembers(userGroupName, members.getEntries());
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
 
-    @ApiOperation(value = "Removes members from the specified user group.")
+    @ApiOperation(value = "Remove members from the specified user group.")
     @CrossOrigin
     @RequestMapping(
             path = "/{userGroupName}/members",
@@ -211,18 +212,21 @@ public class UserGroupRestController extends AbstractRestControllerImpl {
         return ResponseEntity.ok().build();
     }
 
-    @ApiOperation(value = "Replaces the members of the specified user group.")
+    @ApiOperation(value = "Replace the members of the specified user group.")
     @CrossOrigin
     @RequestMapping(
             path = "/{userGroupName}/members",
             method = RequestMethod.POST,
             consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
+    @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntity<Void> updateMembers(
             @PathVariable("userGroupName") @ApiParam(value = "The group name", required = true) String userGroupName,
             @RequestBody @ApiParam(value = "The new member(s)", required = true) StringListDto members) {
 
         userGroupService.addMembers(userGroupName, members.getEntries());
-        return ResponseEntity.ok().build();
+        final URI location = ServletUriComponentsBuilder
+                .fromCurrentRequest().build().toUri();
+        return ResponseEntity.created(location).build();
     }
 
 }

@@ -25,4 +25,6 @@ public interface OAuth2ClientLdapDao {
 
     void delete(String clientId);
 
+    boolean exists(String clientId);
+
 }

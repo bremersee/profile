@@ -19,38 +19,31 @@ package org.bremersee.profile.controller.rest;
 import io.swagger.annotations.*;
 import org.apache.commons.lang3.StringUtils;
 import org.bremersee.common.model.BooleanDto;
-import org.bremersee.common.spring.autoconfigure.RestConstants;
 import org.bremersee.fac.model.AccessResultDto;
 import org.bremersee.pagebuilder.PageBuilderUtils;
 import org.bremersee.pagebuilder.model.Page;
 import org.bremersee.pagebuilder.model.PageDto;
+import org.bremersee.profile.SwaggerConfig;
 import org.bremersee.profile.business.ChangeEmailService;
 import org.bremersee.profile.business.ChangeMobileService;
 import org.bremersee.profile.business.UserProfileService;
 import org.bremersee.profile.model.UserProfileCreateRequestDto;
 import org.bremersee.profile.model.UserProfileDto;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
+import java.net.URI;
 
 /**
  * @author Christian Bremer
  */
-@Api(authorizations = {
-        @Authorization(
-                value = RestConstants.SECURITY_SCHEMA_OAUTH2,
-                scopes = {
-                        @AuthorizationScope(
-                                scope = RestConstants.AUTHORIZATION_SCOPE,
-                                description = RestConstants.AUTHORIZATION_SCOPE_DESCR)
-                }
-        )
-})
 @RestController
-@RequestMapping(path = RestConstants.REST_CONTEXT_PATH + "/user-profile")
+@RequestMapping(path = "/api/user-profile")
 public class UserProfileRestController extends AbstractRestControllerImpl {
 
     private final UserProfileService userProfileService;
@@ -102,7 +95,7 @@ public class UserProfileRestController extends AbstractRestControllerImpl {
         return userProfileService.findByIdentifier(identifier);
     }
 
-    @ApiOperation(value = "Tests whether an user with the specified identifier exists or not.")
+    @ApiOperation(value = "Test whether an user with the specified identifier exists or not.")
     @CrossOrigin
     @RequestMapping(
             path = "/{identifier}/exists",
@@ -114,7 +107,7 @@ public class UserProfileRestController extends AbstractRestControllerImpl {
         return new BooleanDto(userProfileService.existsByIdentifier(identifier));
     }
 
-    @ApiOperation(value = "Deletes an user profile.")
+    @ApiOperation(value = "Delete an user profile.")
     @CrossOrigin
     @RequestMapping(
             path = "/{userName}",
@@ -126,92 +119,106 @@ public class UserProfileRestController extends AbstractRestControllerImpl {
         return ResponseEntity.ok().build();
     }
 
-    @ApiOperation(value = "Creates an user profile.")
+    @ApiOperation(value = "Create an user profile.")
     @CrossOrigin
     @RequestMapping(
-            method = RequestMethod.PUT,
+            method = RequestMethod.POST,
             consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE},
             produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
-    public UserProfileDto create(
+    @ResponseStatus(HttpStatus.CREATED)
+    public ResponseEntity<UserProfileDto> create(
             @RequestBody @ApiParam(value = "The user profile", required = true) UserProfileCreateRequestDto request) {
 
-        return userProfileService.create(request);
+        UserProfileDto dto = userProfileService.create(request);
+        final URI location = ServletUriComponentsBuilder
+                .fromCurrentRequest().path("/{userGroupName}")
+                .buildAndExpand(dto.getUid()).toUri();
+        return ResponseEntity.created(location).body(dto);
     }
 
-    @ApiOperation(value = "Updates an user profile.")
+    @ApiOperation(value = "Update an user profile.")
     @CrossOrigin
     @RequestMapping(
             path = "/{userName}",
-            method = RequestMethod.PUT,
+            method = RequestMethod.PATCH,
             consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE},
             produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
-    public UserProfileDto update(
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public ResponseEntity<Void> update(
             @PathVariable("userName") @ApiParam(value = "The user name", required = true) String userName,
             @RequestBody @ApiParam(value = "The user profile", required = true) UserProfileDto userProfile) {
 
-        return userProfileService.update(userName, userProfile);
+        userProfileService.update(userName, userProfile);
+        return ResponseEntity.noContent().build();
     }
 
-    @ApiOperation(value = "Changes an email.")
+    @ApiOperation(value = "Change the email address.")
     @CrossOrigin
     @RequestMapping(
             path = "/{userName}/change-email",
-            method = RequestMethod.POST)
+            method = RequestMethod.PATCH)
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> changeEmail(
             @PathVariable("userName") @ApiParam(value = "The user name", required = true) String userName,
             @RequestParam(name = "newEmail") @ApiParam(value = "The new email", required = true) String newEmail) {
 
         changeEmailService.changeEmail(userName, newEmail);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
 
-    @ApiOperation(value = "Validates the new email.")
+    @ApiOperation(value = "Validate the new email address.")
     @CrossOrigin
     @RequestMapping(
             path = "/f/email-validation/{changeHash}",
-            method = RequestMethod.POST,
+            method = RequestMethod.GET,
             produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
-    public AccessResultDto changeEmailByChangeHash(
+    @ResponseStatus(HttpStatus.OK)
+    public ResponseEntity<AccessResultDto> changeEmailByChangeHash(
             @PathVariable("changeHash") @ApiParam(value = "The validation hash", required = true) String changeHash,
             HttpServletRequest request) {
 
         final String remoteHost = request.getRemoteHost();
-        return changeEmailService.changeEmailByChangeHash(changeHash, remoteHost);
+        AccessResultDto dto = changeEmailService.changeEmailByChangeHash(changeHash, remoteHost);
+        return ResponseEntity.ok(dto);
     }
 
     @ApiOperation(value = "Change the mobile number.")
     @CrossOrigin
     @RequestMapping(
             path = "/{userName}/change-mobile",
-            method = RequestMethod.POST)
+            method = RequestMethod.PATCH)
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> changeMobile(
             @PathVariable("userName") @ApiParam(value = "The user name", required = true) String userName,
             @RequestParam(name = "newMobile") @ApiParam(value = "The new mobile number", required = true)
                     String newMobile) {
 
         changeMobileService.changeMobile(userName, newMobile);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
 
     @ApiOperation(value = "Validates the new mobile number.")
     @CrossOrigin
     @RequestMapping(
             path = "/f/mobile-validation/{changeHash}",
-            method = RequestMethod.POST,
+            method = RequestMethod.GET,
             produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
-    public AccessResultDto changeMobileByChangeHash(
+    @ResponseStatus(HttpStatus.OK)
+    public ResponseEntity<AccessResultDto> changeMobileByChangeHash(
             @PathVariable("changeHash") @ApiParam(value = "The validation hash", required = true) String changeHash,
             HttpServletRequest request) {
 
         final String remoteHost = request.getRemoteHost();
-        return changeMobileService.changeMobileByChangeHash(changeHash, remoteHost);
+        AccessResultDto dto = changeMobileService.changeMobileByChangeHash(changeHash, remoteHost);
+        return ResponseEntity.ok(dto);
     }
 
     @ApiOperation(value = "Change the password.")
     @CrossOrigin
     @RequestMapping(
             path = "/{userName}/change-password",
-            method = RequestMethod.POST)
+            method = RequestMethod.PATCH)
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> changePassword(
             @PathVariable("userName") @ApiParam(value = "The user name", required = true) String userName,
             @RequestParam("newPassword") @ApiParam(value = "The new password", required = true) String newPassword,
@@ -223,211 +230,7 @@ public class UserProfileRestController extends AbstractRestControllerImpl {
         } else {
             userProfileService.changePassword(userName, newPassword, oldPassword);
         }
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
-
-//    @ApiOperation(value = "Applies organisation settings to the user profile.")
-//    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_SYSTEM')")
-//    @CrossOrigin
-//    @RequestMapping(
-//            path = "/{userName}/organisation-settings",
-//            method = RequestMethod.PUT,
-//            consumes = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE })
-//    public ResponseEntity<Void> applyOrganisationSettingsToProfile(
-//            @PathVariable("userName") @ApiParam(value = "The user name", required = true) String userName,
-//            @RequestBody @ApiParam(value = "The organisation settings", required = true) OrganisationSettingsDto organisationSettings) {
-//
-//        userProfileService.applyOrganisationSettingsToProfile(userName, organisationSettings);
-//        return ResponseEntity.ok().build();
-//    }
-//
-//    @ApiOperation(value = "Returns the organisation settings of the user profile.")
-//    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_SYSTEM') or #userName == authentication.name")
-//    @CrossOrigin
-//    @RequestMapping(
-//            path = "/{userName}/organisation-settings",
-//            method = RequestMethod.GET,
-//            produces = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE })
-//    public OrganisationSettingsDto findOrganisationSettingsByUid(
-//            @PathVariable("userName") @ApiParam(value = "The user name", required = true) String userName) {
-//
-//        return userProfileService.findOrganisationSettingsByUid(userName);
-//    }
-//
-//    @ApiOperation(value = "Removes the organisation settings of the user profile.")
-//    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_SYSTEM')")
-//    @CrossOrigin
-//    @RequestMapping(
-//            path = "/{userName}/organisation-settings",
-//            method = RequestMethod.DELETE,
-//            produces = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE })
-//    public ResponseEntity<Void> removeOrganisationSettingsFromProfile(
-//            @PathVariable("userName") @ApiParam(value = "The user name", required = true) String userName) {
-//
-//        userProfileService.removeOrganisationSettingsFromProfile(userName);
-//        return ResponseEntity.ok().build();
-//    }
-//
-//    @ApiOperation(value = "Applies POSIX settings to the user profile.")
-//    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_SYSTEM')")
-//    @CrossOrigin
-//    @RequestMapping(
-//            path = "/{userName}/posix-settings",
-//            method = RequestMethod.PUT,
-//            consumes = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE })
-//    public ResponseEntity<Void> applyPosixSettingsToProfile(
-//            @PathVariable("userName") @ApiParam(value = "The user name", required = true) String userName,
-//            @RequestBody @ApiParam(value = "The POSIX settings", required = true) PosixSettingsDto posixSettings) {
-//
-//        userProfileService.applyPosixSettingsToProfile(userName, posixSettings);
-//        return ResponseEntity.ok().build();
-//    }
-//
-//    @ApiOperation(value = "Returns the posix settings of the user profile.")
-//    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_SYSTEM') or #userName == authentication.name")
-//    @CrossOrigin
-//    @RequestMapping(
-//            path = "/{userName}/posix-settings",
-//            method = RequestMethod.GET,
-//            produces = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE })
-//    public PosixSettingsDto findPosixSettingsByUid(
-//            @PathVariable("userName") @ApiParam(value = "The user name", required = true) String userName) {
-//
-//        return userProfileService.findPosixSettingsByUid(userName);
-//    }
-//
-//    @ApiOperation(value = "Tests whether the posix settings of the user profile exists or not.")
-//    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_SYSTEM') or #userName == authentication.name")
-//    @CrossOrigin
-//    @RequestMapping(
-//            path = "/{userName}/posix-settings/exists",
-//            method = RequestMethod.GET,
-//            produces = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE })
-//    public BooleanDto posixSettingsExistsByUid(
-//            @PathVariable("userName") @ApiParam(value = "The user name", required = true) String userName) {
-//
-//        return new BooleanDto(userProfileService.posixSettingsExistsByUid(userName));
-//    }
-//
-//    @ApiOperation(value = "Removes the posix settings from the user profile.")
-//    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_SYSTEM')")
-//    @CrossOrigin
-//    @RequestMapping(
-//            path = "/{userName}/posix-settings",
-//            method = RequestMethod.DELETE)
-//    public ResponseEntity<Void> removePosixSettingsFromProfile(
-//            @PathVariable("userName") @ApiParam(value = "The user name", required = true) String userName) {
-//
-//        userProfileService.removePosixSettingsFromProfile(userName);
-//        return ResponseEntity.ok().build();
-//    }
-//
-//    @ApiOperation(value = "Applies samba settings to the user profile.")
-//    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_SYSTEM')")
-//    @CrossOrigin
-//    @RequestMapping(
-//            path = "/{userName}/samba-settings",
-//            method = RequestMethod.PUT,
-//            consumes = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE })
-//    public ResponseEntity<Void> applySambaSettingsToProfile(
-//            @PathVariable("userName") @ApiParam(value = "The user name", required = true) String userName,
-//            @RequestBody @ApiParam(value = "The samba settings", required = true) SambaSettingsDto sambaSettings) {
-//
-//        userProfileService.applySambaSettingsToProfile(userName, sambaSettings);
-//        return ResponseEntity.ok().build();
-//    }
-//
-//    @ApiOperation(value = "Returns the samba settings of the user profile.")
-//    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_SYSTEM') or #userName == authentication.name")
-//    @CrossOrigin
-//    @RequestMapping(
-//            path = "/{userName}/samba-settings",
-//            method = RequestMethod.GET,
-//            produces = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE })
-//    public SambaSettingsDto findSambaSettingsByUid(
-//            @PathVariable("userName") @ApiParam(value = "The user name", required = true) String userName) {
-//
-//        return userProfileService.findSambaSettingsByUid(userName);
-//    }
-//
-//    @ApiOperation(value = "Tests whether the samba settings of the user profile exists or not.")
-//    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_SYSTEM') or #userName == authentication.name")
-//    @CrossOrigin
-//    @RequestMapping(
-//            path = "/{userName}/samba-settings/exists",
-//            method = RequestMethod.GET,
-//            produces = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE })
-//    public BooleanDto sambaSettingsExistsByUid(
-//            @PathVariable("userName") @ApiParam(value = "The user name", required = true) String userName) {
-//
-//        return new BooleanDto(userProfileService.sambaSettingsExistsByUid(userName));
-//    }
-//
-//    @ApiOperation(value = "Removes the samba settings from the user profile.")
-//    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_SYSTEM')")
-//    @CrossOrigin
-//    @RequestMapping(
-//            path = "/{userName}/samba-settings",
-//            method = RequestMethod.DELETE)
-//    public ResponseEntity<Void> removeSambaSettingsFromProfile(
-//            @PathVariable("userName") @ApiParam(value = "The user name", required = true) String userName) {
-//
-//        userProfileService.removeSambaSettingsFromProfile(userName);
-//        return ResponseEntity.ok().build();
-//    }
-//
-//    @ApiOperation(value = "Applies mail settings to the user profile.")
-//    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_SYSTEM')")
-//    @CrossOrigin
-//    @RequestMapping(
-//            path = "/{userName}/mail-settings",
-//            method = RequestMethod.PUT,
-//            consumes = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE })
-//    public ResponseEntity<Void> applyMailSettingsToProfile(
-//            @PathVariable("userName") @ApiParam(value = "The user name", required = true) String userName,
-//            @RequestBody @ApiParam(value = "The mail settings", required = true) MailSettingsDto mailSettings) {
-//
-//        userProfileService.applyMailSettingsToProfile(userName, mailSettings);
-//        return ResponseEntity.ok().build();
-//    }
-//
-//    @ApiOperation(value = "Returns the mail settings of the user profile.")
-//    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_SYSTEM') or #userName == authentication.name")
-//    @CrossOrigin
-//    @RequestMapping(
-//            path = "/{userName}/mail-settings",
-//            method = RequestMethod.GET,
-//            produces = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE })
-//    public MailSettingsDto findMailSettingsByUid(
-//            @PathVariable("userName") @ApiParam(value = "The user name", required = true) String userName) {
-//
-//        return userProfileService.findMailSettingsByUid(userName);
-//    }
-//
-//    @ApiOperation(value = "Tests whether the mail settings of the user profile exists or not.")
-//    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_SYSTEM') or #userName == authentication.name")
-//    @CrossOrigin
-//    @RequestMapping(
-//            path = "/{userName}/mail-settings/exists",
-//            method = RequestMethod.GET,
-//            produces = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE })
-//    public BooleanDto mailSettingsExistsByUid(
-//            @PathVariable("userName") @ApiParam(value = "The user name", required = true) String userName) {
-//
-//        return new BooleanDto(userProfileService.mailSettingsExistsByUid(userName));
-//    }
-//
-//    @ApiOperation(value = "Removes the mail settings from the user profile.")
-//    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_SYSTEM')")
-//    @CrossOrigin
-//    @RequestMapping(
-//            path = "/{userName}/mail-settings",
-//            method = RequestMethod.DELETE)
-//    public ResponseEntity<Void> removeMailSettingsFromProfile(
-//            @PathVariable("userName") @ApiParam(value = "The user name", required = true) String userName) {
-//
-//        userProfileService.removeMailSettingsFromProfile(userName);
-//        return ResponseEntity.ok().build();
-//    }
 
 }
